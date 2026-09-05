@@ -1,7 +1,7 @@
 {
   "name": "soft-delete",
   "version": "1.0.0",
-  "description": "A blank template to get started with Payload 3.0",
+  "description": "A Payload CMS plugin that adds audited soft deletion to selected collections.",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -106,13 +106,6 @@
     },
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "sharp",
-      "esbuild",
-      "unrs-resolver"
-    ]
   },
   "registry": "https://registry.npmjs.org/",
   "dependencies": {}
