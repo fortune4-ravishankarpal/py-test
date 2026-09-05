@@ -1,52 +1,46 @@
 import type { Payload } from 'payload'
 
 import config from '@payload-config'
-import { createPayloadRequest, getPayload } from 'payload'
+import { getPayload } from 'payload'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
-
-import { customEndpointHandler } from '../src/endpoints/customEndpointHandler.js'
 
 let payload: Payload
 
 afterAll(async () => {
-  await payload.destroy()
+  await payload?.destroy()
 })
 
 beforeAll(async () => {
   payload = await getPayload({ config })
 })
 
-describe('Plugin integration tests', () => {
-  test('should query custom endpoint added by plugin', async () => {
-    const request = new Request('http://localhost:3000/api/my-plugin-endpoint', {
-      method: 'GET',
-    })
-
-    const payloadRequest = await createPayloadRequest({ config, request })
-    const response = await customEndpointHandler(payloadRequest)
-    expect(response.status).toBe(200)
-
-    const data = await response.json()
-    expect(data).toMatchObject({
-      message: 'Hello from custom endpoint',
-    })
+describe('softDelete', () => {
+  test('adds soft-delete fields with safe defaults', async () => {
+    const post = await payload.create({ collection: 'posts', data: { title: 'Default fields' } })
+    expect(post.isSoftDeleted).toBe(false)
+    expect(post.softDeletedAt).toBeUndefined()
+    expect(post.softDeletedBy).toBeUndefined()
   })
 
-  test('can create post with custom text field added by plugin', async () => {
-    const post = await payload.create({
-      collection: 'posts',
-      data: {
-        addedByPlugin: 'added by plugin',
-      },
-    })
-    expect(post.addedByPlugin).toBe('added by plugin')
+  test('marks a trashed record and excludes it from normal reads', async () => {
+    const post = await payload.create({ collection: 'posts', data: { title: 'Trash me' } })
+    const deletedAt = new Date().toISOString()
+    const trashed = await payload.update({ collection: 'posts', id: post.id, data: { deletedAt } })
+    expect(trashed.isSoftDeleted).toBe(true)
+    expect(trashed.softDeletedAt).toBe(deletedAt)
+
+    const normalRead = await payload.find({ collection: 'posts', where: { id: { equals: post.id } } })
+    expect(normalRead.docs).toHaveLength(0)
+    const trashRead = await payload.find({ collection: 'posts', trash: true, where: { id: { equals: post.id } } })
+    expect(trashRead.docs).toHaveLength(1)
   })
 
-  test('plugin creates and seeds plugin-collection', async () => {
-    expect(payload.collections['plugin-collection']).toBeDefined()
-
-    const { docs } = await payload.find({ collection: 'plugin-collection' })
-
-    expect(docs).toHaveLength(1)
+  test('clears audit fields when a record is restored', async () => {
+    const post = await payload.create({ collection: 'posts', data: { title: 'Restore me' } })
+    await payload.update({ collection: 'posts', id: post.id, data: { deletedAt: new Date().toISOString() } })
+    const restored = await payload.update({ collection: 'posts', id: post.id, trash: true, data: { deletedAt: null } })
+    expect(restored.isSoftDeleted).toBe(false)
+    expect(restored.softDeletedAt).toBeNull()
+    expect(restored.softDeletedBy).toBeNull()
   })
 })

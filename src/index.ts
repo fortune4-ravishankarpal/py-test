@@ -1,113 +1,153 @@
-import type { CollectionSlug, Config } from 'payload'
-
-import { customEndpointHandler } from './endpoints/customEndpointHandler.js'
+import type { CollectionSlug, Config, Plugin } from 'payload'
 
 export type SoftDeleteConfig = {
-  /**
-   * List of collections to add a custom field
-   */
-  collections?: Partial<Record<CollectionSlug, true>>
+  collections: Partial<Record<CollectionSlug, true>>
   disabled?: boolean
 }
 
-export const softDelete =
-  (pluginOptions: SoftDeleteConfig) =>
-  (config: Config): Config => {
-    if (!config.collections) {
-      config.collections = []
-    }
+type SoftDeleteDocument = {
+  isSoftDeleted?: boolean
+  softDeletedAt?: null | string
+  softDeletedBy?: null | string
+}
 
-    config.collections.push({
-      slug: 'plugin-collection',
-      fields: [
-        {
-          name: 'id',
-          type: 'text',
-        },
-      ],
-    })
+export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
+  return (config: Config): Config => {
+    if (pluginOptions.disabled) return config
 
-    if (pluginOptions.collections) {
-      for (const collectionSlug in pluginOptions.collections) {
-        const collection = config.collections.find(
-          (collection) => collection.slug === collectionSlug,
+    return {
+      ...config,
+      collections: (config.collections ?? []).map((collection) => {
+        if (!pluginOptions.collections[collection.slug]) return collection
+
+        const existingFieldNames = new Set(
+          collection.fields
+            .filter(
+              (field): field is typeof field & { name: string } =>
+                'name' in field,
+            )
+            .map((field) => field.name),
         )
+        const existingEndpoints = Array.isArray(collection.endpoints) ? collection.endpoints : []
+        return {
+          ...collection,
 
-        if (collection) {
-          collection.fields.push({
-            name: 'addedByPlugin',
-            type: 'text',
-            admin: {
-              position: 'sidebar',
+          fields: [
+            ...collection.fields,
+
+            ...(existingFieldNames.has('isSoftDeleted')
+              ? []
+              : [
+                {
+                  name: 'isSoftDeleted',
+                  type: 'checkbox' as const,
+                  defaultValue: false,
+                  index: true,
+                  admin: {
+                    hidden: true,
+                    disableListColumn: true
+                  },
+                },
+              ]),
+
+            ...(existingFieldNames.has('softDeletedBy')
+              ? []
+              : [
+                {
+                  name: 'softDeletedBy',
+                  type: 'text' as const,
+                  admin: {
+                    hidden: true,
+                    disableListColumn: true
+                  },
+                },
+              ]),
+
+            ...(existingFieldNames.has('softDeletedAt')
+              ? []
+              : [
+                {
+                  name: 'softDeletedAt',
+                  type: 'date' as const,
+                  index: true,
+                  admin: {
+                    hidden: true,
+                    disableListColumn: true
+                  },
+                },
+              ]),
+          ],
+
+          endpoints: [
+            ...(existingEndpoints),
+            {
+              path: '/:id',
+              method: 'delete',
+              handler: async (req) => {
+                const id = req.routeParams?.id as string
+
+                // 1. Perform soft-delete update instead of hard deletion
+                const doc = await req.payload.update({
+                  collection: collection.slug,
+                  id,
+                  data: {
+                    isSoftDeleted: true,
+                    softDeletedAt: new Date().toISOString(),
+                    softDeletedBy: req.user?.id ? String(req.user.id) : null,
+                  },
+                  req,
+                })
+
+                // 2. Return standard Payload success response expected by Admin UI / REST
+                return Response.json({
+                  message: 'Deleted successfully.',
+                  doc,
+                })
+              },
             },
-          })
+          ],
+
+          hooks: {
+            ...(collection.hooks ?? {}),
+
+            // Automatically filter out soft-deleted records from queries
+            beforeOperation: [
+              ...(collection.hooks?.beforeOperation ?? []),
+
+              ({ args, operation }) => {
+                if (operation === 'read' && 'where' in args) {
+                  args.where = {
+                    and: [
+                      args.where || {},
+                      {
+                        or: [
+                          { isSoftDeleted: { equals: false } },
+                          { isSoftDeleted: { exists: false } },
+                        ],
+                      },
+                    ],
+                  }
+                }
+                return args
+              },
+            ],
+
+            beforeRead: [
+              ...(collection.hooks?.beforeRead ?? []),
+
+              ({ doc }) => {
+                const softDeleteDoc = doc as SoftDeleteDocument
+
+                if (softDeleteDoc.isSoftDeleted === undefined) {
+                  softDeleteDoc.isSoftDeleted = false
+                }
+
+                return softDeleteDoc
+              },
+            ],
+          },
         }
-      }
+      }),
     }
-
-    /**
-     * If the plugin is disabled, we still want to keep added collections/fields so the database schema is consistent which is important for migrations.
-     * If your plugin heavily modifies the database schema, you may want to remove this property.
-     */
-    if (pluginOptions.disabled) {
-      return config
-    }
-
-    if (!config.endpoints) {
-      config.endpoints = []
-    }
-
-    if (!config.admin) {
-      config.admin = {}
-    }
-
-    if (!config.admin.components) {
-      config.admin.components = {}
-    }
-
-    if (!config.admin.components.beforeDashboard) {
-      config.admin.components.beforeDashboard = []
-    }
-
-    config.admin.components.beforeDashboard.push(
-      `soft-delete/client#BeforeDashboardClient`,
-    )
-    config.admin.components.beforeDashboard.push(
-      `soft-delete/rsc#BeforeDashboardServer`,
-    )
-
-    config.endpoints.push({
-      handler: customEndpointHandler,
-      method: 'get',
-      path: '/my-plugin-endpoint',
-    })
-
-    const incomingOnInit = config.onInit
-
-    config.onInit = async (payload) => {
-      // Ensure we are executing any existing onInit functions before running our own.
-      if (incomingOnInit) {
-        await incomingOnInit(payload)
-      }
-
-      const { totalDocs } = await payload.count({
-        collection: 'plugin-collection',
-        where: {
-          id: {
-            equals: 'seeded-by-plugin',
-          },
-        },
-      })
-
-      if (totalDocs === 0) {
-        await payload.create({
-          collection: 'plugin-collection',
-          data: {
-            id: 'seeded-by-plugin',
-          },
-        })
-      }
-    }
-
-    return config
   }
+}

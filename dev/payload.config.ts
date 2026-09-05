@@ -3,6 +3,7 @@ import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { buildConfig } from 'payload'
+import { softDelete } from 'soft-delete'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
@@ -67,7 +68,12 @@ export default buildConfig({
     await seed(payload)
   },
   plugins: [
-
+    softDelete({
+      collections: {
+        posts: true,
+        users: true
+      },
+    }),
   ],
   secret: process.env.PAYLOAD_SECRET || 'test-secret_key',
   sharp,

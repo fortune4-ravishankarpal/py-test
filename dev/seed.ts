@@ -1,6 +1,6 @@
 import type { Payload } from 'payload'
 
-import { devUser } from './helpers/credentials.js'
+import { adminUser, devUser } from './helpers/credentials.js'
 
 export const seed = async (payload: Payload) => {
   const { totalDocs } = await payload.count({
@@ -16,6 +16,10 @@ export const seed = async (payload: Payload) => {
     await payload.create({
       collection: 'users',
       data: devUser,
+    })
+    await payload.create({
+      collection: 'users',
+      data: adminUser,
     })
   }
 }
