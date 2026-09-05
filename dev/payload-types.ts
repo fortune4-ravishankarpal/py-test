@@ -125,8 +125,12 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: string;
+  isSoftDeleted?: boolean | null;
+  softDeletedBy?: string | null;
+  softDeletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
@@ -156,6 +160,8 @@ export interface Post {
   softDeletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -258,8 +264,12 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  isSoftDeleted?: T;
+  softDeletedBy?: T;
+  softDeletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
   email?: T;
   resetPasswordToken?: T;
   resetPasswordExpiration?: T;
@@ -286,6 +296,8 @@ export interface PostsSelect<T extends boolean = true> {
   softDeletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

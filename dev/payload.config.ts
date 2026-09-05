@@ -37,6 +37,13 @@ export default buildConfig({
     },
     {
       slug: 'posts',
+      versions: {
+        drafts: {
+          autosave: {
+            interval: 2000,
+          }
+        }
+      },
       admin: {
         useAsTitle: 'title',
       },
