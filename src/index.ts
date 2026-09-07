@@ -1,10 +1,12 @@
 import {
   APIError,
+  type Access,
   type CollectionConfig,
   type CollectionSlug,
   type Config,
   type PayloadRequest,
   type Plugin,
+  type Where,
 } from 'payload'
 import { fieldAffectsData, flattenTopLevelFields } from 'payload/shared'
 
@@ -19,12 +21,6 @@ export type SoftDeleteConfig = {
  */
 export const SOFT_DELETE_ACTION_FIELD = 'softDeleteAction'
 
-type SoftDeleteDocument = {
-  isSoftDeleted?: boolean
-  softDeletedAt?: null | string
-  softDeletedBy?: null | string
-}
-
 type SoftDeleteUpdateOptions = {
   collection: string
   id: number | string
@@ -36,12 +32,6 @@ type SoftDeleteUpdateOptions = {
 const hasFieldName = (fields: CollectionConfig['fields'], name: string): boolean =>
   fields.some((field) => 'name' in field && field.name === name)
 
-/**
- * Recreates Payload's default "initial columns" behaviour (useAsTitle plus the
- * first few visible data fields) so the soft-delete action column can be
- * appended to `admin.defaultColumns` without replacing the user's default
- * selection on collections that do not define one.
- */
 const getNaturalDefaultColumns = (collection: CollectionConfig): string[] => {
   const useAsTitle = collection.admin?.useAsTitle
   const columns: string[] = []
@@ -80,6 +70,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
 
         const existingEndpoints = Array.isArray(collection.endpoints) ? collection.endpoints : []
         const existingHooks = collection.hooks ?? {}
+        const existingReadAccess: Access = collection.access?.read ?? (() => true)
         const hasActionColumn = !hasFieldName(collection.fields, SOFT_DELETE_ACTION_FIELD)
 
         const isSoftDeletedField = {
@@ -132,6 +123,14 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
           },
         }
 
+        // Condition to restrict queries to non-soft-deleted items
+        const softDeleteWhere: Where = {
+          or: [
+            { isSoftDeleted: { equals: false } },
+            { isSoftDeleted: { exists: false } },
+          ],
+        }
+
         return {
           ...collection,
           // Never let Payload's native trash feature handle these collections.
@@ -139,6 +138,23 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
           trash: false,
           access: {
             ...collection.access,
+            // Combine existing read access constraints with soft delete filtering
+            read: async (args) => {
+              const baseAccess = await existingReadAccess(args)
+
+              // If read access is explicitly denied, return false
+              if (!baseAccess) return false
+
+              // If read access returns a specific query (Where object), combine it
+              if (typeof baseAccess === 'object') {
+                return {
+                  and: [baseAccess, softDeleteWhere],
+                }
+              }
+
+              // Otherwise return the soft delete filter rule directly
+              return softDeleteWhere
+            },
             // Block native delete everywhere: Admin UI, REST, GraphQL and the
             // Local API (unless `overrideAccess: true` is explicitly passed).
             delete: () => false,
@@ -198,31 +214,6 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
                   `Permanent deletion is disabled for "${collection.slug}". Use the soft-delete endpoint instead.`,
                   403,
                 )
-              },
-            ],
-            beforeChange: [
-              ...(existingHooks.beforeChange ?? []),
-              ({ data, operation, originalDoc, req }) => {
-                const incoming = data as SoftDeleteDocument
-                const original = originalDoc as SoftDeleteDocument | undefined
-
-                // No matter which API path flips `isSoftDeleted` to true (REST
-                // PATCH, Local API, or the plugin endpoint), keep the audit
-                // fields consistent: record when and by whom it was soft-deleted.
-                if (
-                  operation === 'update' &&
-                  incoming.isSoftDeleted === true &&
-                  original?.isSoftDeleted !== true
-                ) {
-                  if (!incoming.softDeletedAt) {
-                    incoming.softDeletedAt = new Date().toISOString()
-                  }
-                  if (incoming.softDeletedBy === undefined) {
-                    incoming.softDeletedBy = req.user?.id ? String(req.user.id) : null
-                  }
-                }
-
-                return incoming
               },
             ],
           },

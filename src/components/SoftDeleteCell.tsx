@@ -1,7 +1,8 @@
 'use client'
+
 import type { DefaultCellComponentProps } from 'payload'
 import { formatAdminURL } from 'payload/shared'
-import { useConfig } from '@payloadcms/ui'
+import { ConfirmationModal, useConfig, useModal, toast } from '@payloadcms/ui'
 import { useRouter } from 'next/navigation.js'
 import { useState } from 'react'
 
@@ -16,16 +17,17 @@ const buttonStyle: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-/**
- * Renders the per-row "Soft delete" action inside the admin list view.
- * Clicking calls the collection endpoint `POST /api/<collection>/:id/soft-delete`
- * which performs a regular `payload.update()` on the soft-delete fields.
- */
-export const SoftDeleteCell: React.FC<DefaultCellComponentProps> = ({ collectionSlug, rowData }) => {
+export const SoftDeleteCell: React.FC<DefaultCellComponentProps> = ({
+  collectionSlug,
+  rowData,
+}) => {
   const { config } = useConfig()
+  const { openModal, closeModal } = useModal()
   const router = useRouter()
   const doc = rowData as SoftDeleteRowData
+
   const [deleting, setDeleting] = useState(false)
+  const modalSlug = `soft-delete-confirm-${String(doc.id)}`
 
   if (doc.isSoftDeleted) {
     return (
@@ -37,6 +39,7 @@ export const SoftDeleteCell: React.FC<DefaultCellComponentProps> = ({ collection
 
   const softDelete = async () => {
     if (deleting) return
+
     setDeleting(true)
 
     try {
@@ -47,35 +50,65 @@ export const SoftDeleteCell: React.FC<DefaultCellComponentProps> = ({ collection
         }),
         {
           method: 'POST',
+          credentials: 'include',
         },
       )
 
       if (!response.ok) {
-        const body = await response.json()
-        throw new Error(body?.errors?.[0]?.message ?? `Soft delete failed (${response.status})`)
+        let message = `Soft delete failed (${response.status})`
+
+        try {
+          const body = await response.json()
+          message = body?.errors?.[0]?.message ?? message
+        } catch {}
+
+        throw new Error(message)
       }
 
-      // Re-fetch the list so the row reflects its new soft-deleted state.
+      closeModal(modalSlug)
+
+      toast.success('Record soft deleted successfully.')
+
       router.refresh()
     } catch (error) {
-      console.error('Soft delete failed:', error) // eslint-disable-line no-console
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to soft delete the record.',
+      )
     } finally {
       setDeleting(false)
     }
   }
 
   return (
-    <button
-      type="button"
-      style={buttonStyle}
-      disabled={deleting}
-      onClick={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        void softDelete()
-      }}
-    >
-      {deleting ? 'Soft deleting…' : 'Soft delete'}
-    </button>
+    <>
+      <button
+        type="button"
+        style={buttonStyle}
+        disabled={deleting}
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          openModal(modalSlug)
+        }}
+      >
+        {deleting ? 'Soft deleting…' : 'Soft delete'}
+      </button>
+
+      <ConfirmationModal
+        modalSlug={modalSlug}
+        heading="Soft delete record"
+        body="Are you sure you want to soft delete this record?"
+        onConfirm={() => {
+          void softDelete()
+        }}
+        onCancel={() => {
+          if (!deleting) {
+            closeModal(modalSlug)
+          }
+        }}
+      />
+    </>
   )
 }
