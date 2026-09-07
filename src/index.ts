@@ -19,7 +19,7 @@ export type SoftDeleteConfig = {
  * Name of the UI-only list-view column added to every protected collection.
  * Its `Cell` component renders the per-row "Soft delete" action button.
  */
-export const SOFT_DELETE_ACTION_FIELD = 'softDeleteAction'
+export const SOFT_DELETE_ACTION_FIELD = 'deleteAction'
 
 type SoftDeleteUpdateOptions = {
   collection: string
@@ -201,7 +201,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
                   },
                 } as unknown as SoftDeleteUpdateOptions)
 
-                return Response.json({ doc, message: 'Soft deleted successfully.' })
+                return Response.json({ doc, message: 'Deleted successfully.' })
               },
             },
           ],

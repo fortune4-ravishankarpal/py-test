@@ -32,7 +32,7 @@ export const SoftDeleteCell: React.FC<DefaultCellComponentProps> = ({
   if (doc.isSoftDeleted) {
     return (
       <button type="button" disabled style={buttonStyle}>
-        Soft deleted
+        Deleted
       </button>
     )
   }
@@ -55,7 +55,7 @@ export const SoftDeleteCell: React.FC<DefaultCellComponentProps> = ({
       )
 
       if (!response.ok) {
-        let message = `Soft delete failed (${response.status})`
+        let message = `Delete failed (${response.status})`
 
         try {
           const body = await response.json()
@@ -67,14 +67,14 @@ export const SoftDeleteCell: React.FC<DefaultCellComponentProps> = ({
 
       closeModal(modalSlug)
 
-      toast.success('Record soft deleted successfully.')
+      toast.success('Record deleted successfully.')
 
       router.refresh()
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : 'Failed to soft delete the record.',
+          : 'Failed to delete the record.',
       )
     } finally {
       setDeleting(false)
@@ -93,13 +93,13 @@ export const SoftDeleteCell: React.FC<DefaultCellComponentProps> = ({
           openModal(modalSlug)
         }}
       >
-        {deleting ? 'Soft deleting…' : 'Soft delete'}
+        {deleting ? 'Deleting…' : 'Delete'}
       </button>
 
       <ConfirmationModal
         modalSlug={modalSlug}
-        heading="Soft delete record"
-        body="Are you sure you want to soft delete this record?"
+        heading="Delete record"
+        body="Are you sure you want to delete this record?"
         onConfirm={() => {
           void softDelete()
         }}
