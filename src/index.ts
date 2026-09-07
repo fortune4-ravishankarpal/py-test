@@ -194,7 +194,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
               path: '/:id/soft-delete',
               method: 'post' as const,
               handler: async (req: PayloadRequest) => {
-                const id = req.routeParams?.id
+                const id = req.routeParams?.id ? String(req.routeParams.id) : undefined
                 if (!id) {
                   throw new APIError(
                     `Missing document id for soft delete on "${collection.slug}".`,
@@ -203,7 +203,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
                 }
 
                 const doc = await req.payload.update({
-                  collection: collection.slug,
+                  collection: collection.slug as CollectionSlug,
                   id,
                   req,
                   overrideAccess: false,
@@ -212,7 +212,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
                     softDeletedAt: new Date().toISOString(),
                     softDeletedBy: req.user?.id ? String(req.user.id) : null,
                   },
-                } as unknown as SoftDeleteUpdateOptions)
+                } as unknown as Parameters<typeof req.payload.update>[0])
 
                 return Response.json({ doc, message: 'Deleted successfully.' })
               },
