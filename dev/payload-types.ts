@@ -129,11 +129,10 @@ export interface User {
   id: string;
   roles?: ('admin' | 'super-admin' | 'editor' | 'user')[] | null;
   isSoftDeleted?: boolean | null;
-  softDeletedBy?: string | null;
   softDeletedAt?: string | null;
+  softDeletedBy?: string | null;
   updatedAt: string;
   createdAt: string;
-  deletedAt?: string | null;
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
@@ -159,11 +158,10 @@ export interface Post {
   id: string;
   title: string;
   isSoftDeleted?: boolean | null;
-  softDeletedBy?: string | null;
   softDeletedAt?: string | null;
+  softDeletedBy?: string | null;
   updatedAt: string;
   createdAt: string;
-  deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
 }
 /**
@@ -174,11 +172,10 @@ export interface Blog {
   id: string;
   title: string;
   isSoftDeleted?: boolean | null;
-  softDeletedBy?: string | null;
   softDeletedAt?: string | null;
+  softDeletedBy?: string | null;
   updatedAt: string;
   createdAt: string;
-  deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
 }
 /**
@@ -288,11 +285,10 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   roles?: T;
   isSoftDeleted?: T;
-  softDeletedBy?: T;
   softDeletedAt?: T;
+  softDeletedBy?: T;
   updatedAt?: T;
   createdAt?: T;
-  deletedAt?: T;
   email?: T;
   resetPasswordToken?: T;
   resetPasswordExpiration?: T;
@@ -315,11 +311,10 @@ export interface UsersSelect<T extends boolean = true> {
 export interface PostsSelect<T extends boolean = true> {
   title?: T;
   isSoftDeleted?: T;
-  softDeletedBy?: T;
   softDeletedAt?: T;
+  softDeletedBy?: T;
   updatedAt?: T;
   createdAt?: T;
-  deletedAt?: T;
   _status?: T;
 }
 /**
@@ -329,11 +324,10 @@ export interface PostsSelect<T extends boolean = true> {
 export interface BlogSelect<T extends boolean = true> {
   title?: T;
   isSoftDeleted?: T;
-  softDeletedBy?: T;
   softDeletedAt?: T;
+  softDeletedBy?: T;
   updatedAt?: T;
   createdAt?: T;
-  deletedAt?: T;
   _status?: T;
 }
 /**

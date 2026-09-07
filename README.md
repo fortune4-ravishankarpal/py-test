@@ -1,6 +1,13 @@
 # Payload Soft Delete
 
-`soft-delete` enables audited soft deletion for selected Payload CMS collections. It uses Payload 3's built-in `trash` support, so deleting a document records a timestamp instead of removing the database record. Normal reads automatically exclude deleted documents.
+`soft-delete` is a reusable [Payload CMS](https://payloadcms.com) plugin that blocks native
+permanent deletion on selected collections and adds an audited, admin-friendly "Soft
+delete" flow instead.
+
+- `trash: false` — Payload's native trash feature is never involved.
+- **Native delete is blocked** from the Admin UI, REST, GraphQL and the Local API via
+  `access.delete: () => false` plus a `beforeDelete` hook guard. No permanent deletion
+  is possible through normal admin or API operations—even with `overrideAccess`.
 
 ## Install and configure
 
@@ -9,65 +16,82 @@ import { buildConfig } from 'payload'
 import { softDelete } from 'soft-delete'
 
 export default buildConfig({
-  collections: [Posts, Products],
+  collections: [Posts, Users],
   plugins: [
     softDelete({
       collections: {
+        users: true,
         posts: true,
-        products: true,
       },
     }),
   ],
 })
 ```
 
-## Fields added to each selected collection
+## What the plugin does
 
-| Field | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `isSoftDeleted` | checkbox | `false` | Indicates that the record is in trash. |
-| `softDeletedBy` | text | optional / `null` after restore | ID of the authenticated user who trashed it, if available. |
-| `softDeletedAt` | date | optional / `null` after restore | Date/time it was trashed. |
-| `deletedAt` | date | `null` | Payload's native trash timestamp. |
+For every collection listed in `collections`, the plugin:
 
-`softDeletedAt` is set from `deletedAt`; this guarantees it represents the actual delete date/time. The plugin uses the conventional `softDeleted*` spelling for the requested delete audit fields.
+1. Sets `trash: false` and `access.delete: () => false`, so native Payload delete is
+   impossible (Admin UI button is gone, REST/GraphQL/Local API throw 403).
+2. Adds three audit fields:
 
-## How deletion and reads work
+| Field            | Type     | Purpose                                        |
+| ---------------- | -------- | ---------------------------------------------- |
+| `isSoftDeleted`  | checkbox | `true` once the document has been soft-deleted |
+| `softDeletedAt`  | date     | When it was soft-deleted                       |
+| `softDeletedBy`  | text     | ID of the user who soft-deleted it (`req.user`) |
 
-The plugin enables `trash: true` on selected collections. Payload handles the delete/read lifecycle atomically:
+   All three are hidden from the admin edit screen and are only ever set through the
+   plugin's soft-delete path.
+3. Adds a **Soft delete** column to the admin list view. Each row's button calls the
+   collection endpoint and then refreshes the list.
+4. Adds a collection endpoint `POST /api/<collection>/:id/soft-delete` that performs a
+   plain `payload.update()`:
 
-- A trash action updates `deletedAt` rather than removing the document.
-- The plugin's `beforeChange` hook sets `isSoftDeleted`, `softDeletedAt`, and `softDeletedBy` in that same update.
-- Payload's read operation filters trashed documents before the `beforeRead` hook runs. The plugin preserves existing `beforeRead` hooks and keeps the audit flag consistent for legacy trashed data.
-- Restoring a document (`deletedAt: null`) clears all three audit fields.
-
-To include trashed documents in a local API query, pass `trash: true`:
-
-```ts
-const result = await payload.find({
-  collection: 'posts',
-  trash: true,
-  where: { isSoftDeleted: { equals: true } },
-})
+```
+Payload Delete         →  BLOCKED (403)
+Admin List View        →  Soft delete button
+                          →  POST /:id/soft-delete
+                          →  payload.update()
+                          →  isSoftDeleted = true
+                              softDeletedAt = now
+                              softDeletedBy = current user
 ```
 
-## Manual development check
+The soft-delete update touches **only** the three audit fields; documents are never
+removed from the database.
 
-Run `pnpm dev`, open the Posts collection in the Payload admin UI, create a post, and use **Trash**. It disappears from the normal list. Open the Trash view to confirm `isSoftDeleted` is true and the date fields are populated; then restore it and confirm the fields are cleared.
+A `beforeChange` hook keeps the audit fields consistent no matter which API path flips
+`isSoftDeleted` to `true` (the endpoint, a REST PATCH, or the Local API).
 
-For a local API equivalent, use:
+## API
 
 ```ts
+// Soft delete a single document (requires update access on the collection)
+await fetch('/api/posts/66f1.../soft-delete', { method: 'POST' })
+
+// Local API equivalent
 await payload.update({
   collection: 'posts',
-  id: post.id,
-  data: { deletedAt: new Date().toISOString() },
+  id: postId,
+  data: {
+    isSoftDeleted: true,
+    softDeletedAt: new Date().toISOString(),
+    softDeletedBy: req.user?.id ? String(req.user.id) : null,
+  },
 })
 
-await payload.find({ collection: 'posts' }) // does not return `post`
-await payload.find({ collection: 'posts', trash: true }) // includes `post`
+// Native delete is blocked everywhere
+await payload.delete({ collection: 'posts', id: postId, overrideAccess: false }) // throws
+
+// Soft-deleted documents stay fully readable — this plugin deliberately does not add
+// read filtering, restore, GDPR or trash views yet.
 ```
 
 ## Tests
 
-`pnpm test:int` verifies defaults, the soft-delete update, default read filtering, visibility through `trash: true`, and restore behavior.
+- `pnpm test:int` verifies the default field values, the audited soft-delete update,
+  the blocked native delete (Local API), the REST endpoint and the blocked REST delete.
+- `pnpm test:e2e` drives the admin UI: clicking **Soft delete** in the list view marks
+  the row, and the native Delete action is unavailable.

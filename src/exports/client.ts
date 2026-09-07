@@ -1,1 +1,1 @@
-export { BeforeDashboardClient } from '../components/BeforeDashboardClient.js'
+export { SoftDeleteCell } from '../components/SoftDeleteCell.js'
