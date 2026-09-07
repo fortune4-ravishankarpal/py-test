@@ -12,8 +12,8 @@ type SoftDeleteRowData = {
 }
 
 const buttonStyle: React.CSSProperties = {
-  padding: '4px 8px',
-  fontSize: '12px',
+  // padding: '4px 8px',
+  // fontSize: '12px',
   cursor: 'pointer',
 }
 
@@ -60,7 +60,7 @@ export const SoftDeleteCell: React.FC<DefaultCellComponentProps> = ({
         try {
           const body = await response.json()
           message = body?.errors?.[0]?.message ?? message
-        } catch {}
+        } catch { }
 
         throw new Error(message)
       }

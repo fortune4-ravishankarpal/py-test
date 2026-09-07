@@ -111,6 +111,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
             width: '160px',
             components: {
               Cell: 'soft-delete/client#SoftDeleteCell',
+              // Field: 'soft-delete/client#SoftDeleteButton',
             },
           },
         }
@@ -122,7 +123,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
           ],
         }
 
-        const existingActions = collection.admin?.components?.edit?.beforeDocumentControls ?? []
+        const existingActions = collection.admin?.components?.edit?.editMenuItems ?? []
 
         return {
           ...collection,
@@ -147,7 +148,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
               ...collection.admin?.components,
               edit: {
                 ...collection.admin?.components?.edit,
-                beforeDocumentControls: [
+                editMenuItems: [
                   ...existingActions,
                   'soft-delete/client#SoftDeleteButton',
                 ],
