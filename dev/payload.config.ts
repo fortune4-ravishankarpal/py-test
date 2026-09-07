@@ -33,10 +33,52 @@ export default buildConfig({
     {
       slug: 'users',
       auth: true,
-      fields: [],
+      admin: {
+        defaultColumns: ["email", "roles"]
+      },
+      fields: [
+        {
+          name: 'roles',
+          type: 'select',
+          hasMany: true,
+          options: [
+            'admin',
+            'super-admin',
+            'editor',
+            'user',
+          ],
+        },
+      ],
     },
+
     {
       slug: 'posts',
+      versions: {
+        drafts: {
+          autosave: {
+            interval: 2000,
+          }
+        }
+      },
+      admin: {
+        useAsTitle: 'title',
+      },
+      fields: [
+        {
+          name: 'title',
+          type: 'text',
+          required: true,
+        },
+      ],
+    },
+    {
+      slug: 'blog',
+      access: {
+        delete: ({ req }) => {
+          if (req.user && req.user.roles?.includes("admin")) return true
+          return false
+        }
+      },
       versions: {
         drafts: {
           autosave: {
@@ -78,7 +120,8 @@ export default buildConfig({
     softDelete({
       collections: {
         posts: true,
-        users: true
+        users: true,
+        blog: true
       },
     }),
   ],

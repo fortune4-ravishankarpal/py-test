@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     users: User;
     posts: Post;
+    blog: Blog;
     media: Media;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -79,6 +80,7 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
+    blog: BlogSelect<false> | BlogSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -125,6 +127,7 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: string;
+  roles?: ('admin' | 'super-admin' | 'editor' | 'user')[] | null;
   isSoftDeleted?: boolean | null;
   softDeletedBy?: string | null;
   softDeletedAt?: string | null;
@@ -153,6 +156,21 @@ export interface User {
  * via the `definition` "posts".
  */
 export interface Post {
+  id: string;
+  title: string;
+  isSoftDeleted?: boolean | null;
+  softDeletedBy?: string | null;
+  softDeletedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog".
+ */
+export interface Blog {
   id: string;
   title: string;
   isSoftDeleted?: boolean | null;
@@ -214,6 +232,10 @@ export interface PayloadLockedDocument {
         value: string | Post;
       } | null)
     | ({
+        relationTo: 'blog';
+        value: string | Blog;
+      } | null)
+    | ({
         relationTo: 'media';
         value: string | Media;
       } | null);
@@ -264,6 +286,7 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  roles?: T;
   isSoftDeleted?: T;
   softDeletedBy?: T;
   softDeletedAt?: T;
@@ -290,6 +313,20 @@ export interface UsersSelect<T extends boolean = true> {
  * via the `definition` "posts_select".
  */
 export interface PostsSelect<T extends boolean = true> {
+  title?: T;
+  isSoftDeleted?: T;
+  softDeletedBy?: T;
+  softDeletedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog_select".
+ */
+export interface BlogSelect<T extends boolean = true> {
   title?: T;
   isSoftDeleted?: T;
   softDeletedBy?: T;
