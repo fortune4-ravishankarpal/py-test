@@ -122,7 +122,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
           ],
         }
 
-        const existingActions = collection.admin?.components?.edit?.editMenuItems ?? []
+        const existingActions = collection.admin?.components?.edit?.beforeDocumentControls ?? []
 
         return {
           ...collection,
@@ -147,11 +147,9 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
               ...collection.admin?.components,
               edit: {
                 ...collection.admin?.components?.edit,
-                // Appends the button to the action header bar next to Save/Publish
-                actions: [
+                beforeDocumentControls: [
                   ...existingActions,
                   'soft-delete/client#SoftDeleteButton',
-                  '@/components/SoftDeleteButton'
                 ],
               },
             },
