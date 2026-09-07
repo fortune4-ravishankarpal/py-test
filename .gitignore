@@ -54,3 +54,4 @@ dev/payload-types.ts
 payload-types.ts
 dev\app\(payload)\admin\importMap.js
 dev/app/(payload)/admin/importMap.js
+.npmrc

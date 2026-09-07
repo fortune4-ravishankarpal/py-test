@@ -1,28 +1,22 @@
 {
-  "name": "soft-delete",
-  "version": "1.0.0",
-  "description": "A Payload CMS plugin that adds audited soft deletion to selected collections.",
-  "license": "MIT",
+  "name": "@payload-pln/soft-delete",
+  "version": "1.0.3",
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./client": {
-      "import": "./src/exports/client.ts",
-      "types": "./src/exports/client.ts",
-      "default": "./src/exports/client.ts"
-    },
-    "./rsc": {
-      "import": "./src/exports/rsc.ts",
-      "types": "./src/exports/rsc.ts",
-      "default": "./src/exports/rsc.ts"
+      "types": "./dist/exports/client.d.ts",
+      "import": "./dist/exports/client.js",
+      "default": "./dist/exports/client.js"
     }
   },
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
   "files": [
     "dist"
   ],
@@ -43,8 +37,7 @@
     "test": "pnpm test:int && pnpm test:e2e",
     "test:e2e": "playwright test",
     "test:int": "vitest",
-     "nuke": "pnpm payload migrate:fresh"
-
+    "nuke": "pnpm payload migrate:fresh"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -82,7 +75,10 @@
     "vitest": "4.0.18"
   },
   "peerDependencies": {
-    "payload": "^3.84.1"
+    "@payloadcms/ui": "^3.0.0",
+    "payload": "^3.84.1",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "engines": {
     "node": "^18.20.2 || >=20.9.0",
@@ -110,5 +106,7 @@
     "types": "./dist/index.d.ts"
   },
   "registry": "https://registry.npmjs.org/",
-  "dependencies": {}
+  "dependencies": {
+    "tsup": "^8.5.1"
+  }
 }

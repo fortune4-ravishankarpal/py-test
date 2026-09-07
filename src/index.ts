@@ -110,8 +110,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
             position: 'sidebar' as const,
             width: '160px',
             components: {
-              Cell: 'soft-delete/client#SoftDeleteCell',
-              // Field: 'soft-delete/client#SoftDeleteButton',
+              Cell: '@payload-pln/soft-delete/client#SoftDeleteCell',
             },
           },
         }
@@ -150,7 +149,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
                 ...collection.admin?.components?.edit,
                 editMenuItems: [
                   ...existingActions,
-                  'soft-delete/client#SoftDeleteButton',
+                  '@payload-pln/soft-delete/client#SoftDeleteButton',
                 ],
               },
             },
