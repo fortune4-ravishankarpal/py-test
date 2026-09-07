@@ -15,10 +15,6 @@ export type SoftDeleteConfig = {
   disabled?: boolean
 }
 
-/**
- * Name of the UI-only list-view column added to every protected collection.
- * Its `Cell` component renders the per-row "Soft delete" action button.
- */
 export const SOFT_DELETE_ACTION_FIELD = 'deleteAction'
 
 type SoftDeleteUpdateOptions = {
@@ -81,8 +77,6 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
           admin: {
             disableListColumn: true,
             position: 'sidebar' as const,
-            // Hide the checkbox from the admin edit screen entirely; it is only
-            // ever toggled through the plugin's soft-delete endpoint.
             condition: () => false,
           },
         }
@@ -108,8 +102,6 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
           },
         }
 
-        // Presentational-only field. It is never persisted; its Cell renders the
-        // per-row "Soft delete" button in the admin list view.
         const softDeleteActionField = {
           name: SOFT_DELETE_ACTION_FIELD,
           type: 'ui' as const,
@@ -123,7 +115,6 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
           },
         }
 
-        // Condition to restrict queries to non-soft-deleted items
         const softDeleteWhere: Where = {
           or: [
             { isSoftDeleted: { equals: false } },
@@ -131,36 +122,39 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
           ],
         }
 
+        const existingActions = collection.admin?.components?.edit?.editMenuItems ?? []
+
         return {
           ...collection,
-          // Never let Payload's native trash feature handle these collections.
-          // Soft delete is an audit update on our own fields, nothing else.
           trash: false,
           access: {
             ...collection.access,
-            // Combine existing read access constraints with soft delete filtering
             read: async (args) => {
               const baseAccess = await existingReadAccess(args)
-
-              // If read access is explicitly denied, return false
               if (!baseAccess) return false
-
-              // If read access returns a specific query (Where object), combine it
               if (typeof baseAccess === 'object') {
                 return {
                   and: [baseAccess, softDeleteWhere],
                 }
               }
-
-              // Otherwise return the soft delete filter rule directly
               return softDeleteWhere
             },
-            // Block native delete everywhere: Admin UI, REST, GraphQL and the
-            // Local API (unless `overrideAccess: true` is explicitly passed).
             delete: () => false,
           },
           admin: {
             ...collection.admin,
+            components: {
+              ...collection.admin?.components,
+              edit: {
+                ...collection.admin?.components?.edit,
+                // Appends the button to the action header bar next to Save/Publish
+                actions: [
+                  ...existingActions,
+                  'soft-delete/client#SoftDeleteButton',
+                  '@/components/SoftDeleteButton'
+                ],
+              },
+            },
             defaultColumns: [
               ...(collection.admin?.defaultColumns?.length
                 ? collection.admin.defaultColumns
@@ -184,7 +178,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
                 const id = req.routeParams?.id
                 if (!id) {
                   throw new APIError(
-                    `Missing document id for soft delete on "${collection.slug}". Use POST /api/${collection.slug}/:id/soft-delete`,
+                    `Missing document id for soft delete on "${collection.slug}".`,
                     400,
                   )
                 }
@@ -211,7 +205,7 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
               ...(existingHooks.beforeDelete ?? []),
               () => {
                 throw new APIError(
-                  `Permanent deletion is disabled for "${collection.slug}". Use the soft-delete endpoint instead.`,
+                  `Permanent deletion is disabled for "${collection.slug}".`,
                   403,
                 )
               },
