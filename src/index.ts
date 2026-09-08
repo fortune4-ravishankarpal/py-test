@@ -69,8 +69,8 @@ export const softDelete = (pluginOptions: SoftDeleteConfig): Plugin => {
     return {
       ...config,
       collections: (config.collections ?? []).map((collection) => {
-        if (!pluginOptions.collections[collection.slug]) return collection
-
+        const isEnabled = pluginOptions.collections?.[collection.slug as CollectionSlug]
+        if (!isEnabled) return collection
         const existingEndpoints = Array.isArray(collection.endpoints) ? collection.endpoints : []
         const existingHooks = collection.hooks ?? {}
         const existingReadAccess: Access = collection.access?.read ?? (() => true)
