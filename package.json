@@ -1,6 +1,6 @@
 {
   "name": "@payload-pln/soft-delete",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -42,7 +42,8 @@
     "test": "pnpm test:int && pnpm test:e2e",
     "test:e2e": "playwright test",
     "test:int": "vitest",
-    "nuke": "pnpm payload migrate:fresh"
+    "nuke": "pnpm payload migrate:fresh",
+    "npm:up": "pnpm build && npm publish --access public"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
