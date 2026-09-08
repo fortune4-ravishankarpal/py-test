@@ -15,6 +15,11 @@
       "types": "./dist/exports/client.d.ts",
       "import": "./dist/exports/client.js",
       "default": "./dist/exports/client.js"
+    },
+    "./rsc": {
+      "types": "./dist/exports/rsc.d.ts",
+      "import": "./dist/exports/rsc.js",
+      "default": "./dist/exports/rsc.js"
     }
   },
   "files": [

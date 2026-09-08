@@ -18,13 +18,13 @@
       "@payload-config": [
         "./payload.config.ts"
       ],
-      "soft-delete": [
+      "@payload-pln/soft-delete": [
         "../src/index.ts"
       ],
-      "soft-delete/client": [
+      "@payload-pln/soft-delete/client": [
         "../src/exports/client.ts"
       ],
-      "soft-delete/rsc": [
+      "@payload-pln/soft-delete/rsc": [
         "../src/exports/rsc.ts"
       ]
     },

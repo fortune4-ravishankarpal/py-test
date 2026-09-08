@@ -3,7 +3,7 @@ import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { buildConfig } from 'payload'
-import { softDelete } from 'soft-delete'
+import { softDelete } from '@payload-pln/soft-delete'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 

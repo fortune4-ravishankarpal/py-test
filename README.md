@@ -13,7 +13,7 @@ delete" flow instead.
 
 ```ts
 import { buildConfig } from 'payload'
-import { softDelete } from 'soft-delete'
+import { softDelete } from '@payload-pln/soft-delete'
 
 export default buildConfig({
   collections: [Posts, Users],

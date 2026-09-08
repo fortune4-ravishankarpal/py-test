@@ -11,23 +11,11 @@ import {
 import { fieldAffectsData, flattenTopLevelFields } from 'payload/shared'
 
 
-import { fileURLToPath } from 'node:url'
-
 /**
  * Dynamically resolves the component specifier string for Payload 3.x importMap
  */
 const getClientComponent = (componentName: string): string => {
-  // Get current file directory via import.meta.url
-  const currentFile = fileURLToPath(import.meta.url)
-  const isNodeModule = currentFile.includes('node_modules')
-
-  if (isNodeModule) {
-    // Standard NPM package resolution
-    return `@payload-pln/soft-delete/client#${componentName}`
-  }
-
-  // Local development fallback (computes relative path from project root)
-  return `@/plugins/soft-delete/exports/client#${componentName}`
+  return `@payload-pln/soft-delete/client#${componentName}`
 }
 
 export type SoftDeleteConfig = {
